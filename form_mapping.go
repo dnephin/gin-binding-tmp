@@ -5,6 +5,7 @@
 package binding
 
 import (
+	"encoding"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -197,6 +198,10 @@ func setByForm(value reflect.Value, field reflect.StructField, form map[string][
 }
 
 func setWithProperType(val string, value reflect.Value, field reflect.StructField) error {
+	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
+		return u.UnmarshalText(stringToBytes(val))
+	}
+
 	switch value.Kind() {
 	case reflect.Int:
 		return setIntField(val, 0, value)
