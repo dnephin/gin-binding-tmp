@@ -7,7 +7,6 @@ package binding
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -143,66 +142,6 @@ func TestMappingForm(t *testing.T) {
 	err := decode(&s, map[string][]string{"field": {"6"}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, 6, s.F)
-}
-
-func TestMappingTime(t *testing.T) {
-	var s struct {
-		Time      time.Time
-		LocalTime time.Time `time_format:"2006-01-02"`
-		ZeroValue time.Time
-		CSTTime   time.Time `time_format:"2006-01-02" time_location:"Asia/Shanghai"`
-		UTCTime   time.Time `time_format:"2006-01-02" time_utc:"1"`
-	}
-
-	var err error
-	time.Local, err = time.LoadLocation("Europe/Berlin")
-	assert.NoError(t, err)
-
-	err = decode(&s, map[string][]string{
-		"Time":      {"2019-01-20T16:02:58Z"},
-		"LocalTime": {"2019-01-20"},
-		"ZeroValue": {},
-		"CSTTime":   {"2019-01-20"},
-		"UTCTime":   {"2019-01-20"},
-	}, "form")
-	assert.NoError(t, err)
-
-	assert.Equal(t, "2019-01-20 16:02:58 +0000 UTC", s.Time.String())
-	assert.Equal(t, "2019-01-20 00:00:00 +0100 CET", s.LocalTime.String())
-	assert.Equal(t, "2019-01-19 23:00:00 +0000 UTC", s.LocalTime.UTC().String())
-	assert.Equal(t, "0001-01-01 00:00:00 +0000 UTC", s.ZeroValue.String())
-	assert.Equal(t, "2019-01-20 00:00:00 +0800 CST", s.CSTTime.String())
-	assert.Equal(t, "2019-01-19 16:00:00 +0000 UTC", s.CSTTime.UTC().String())
-	assert.Equal(t, "2019-01-20 00:00:00 +0000 UTC", s.UTCTime.String())
-
-	// wrong location
-	var wrongLoc struct {
-		Time time.Time `time_location:"wrong"`
-	}
-	err = decode(&wrongLoc, map[string][]string{"Time": {"2019-01-20T16:02:58Z"}}, "form")
-	assert.Error(t, err)
-
-	// wrong time value
-	var wrongTime struct {
-		Time time.Time
-	}
-	err = decode(&wrongTime, map[string][]string{"Time": {"wrong"}}, "form")
-	assert.Error(t, err)
-}
-
-func TestMappingTimeDuration(t *testing.T) {
-	var s struct {
-		D time.Duration
-	}
-
-	// ok
-	err := mappingByPtr(&s, formSource{"D": {"5s"}}, "form")
-	assert.NoError(t, err)
-	assert.Equal(t, 5*time.Second, s.D)
-
-	// error
-	err = mappingByPtr(&s, formSource{"D": {"wrong"}}, "form")
-	assert.Error(t, err)
 }
 
 func TestMappingSlice(t *testing.T) {
