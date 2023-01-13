@@ -7,7 +7,6 @@ package binding
 // These implement the Binding interface and can be used to bind the data
 // present in the request to struct instances.
 var (
-	JSON   = jsonBinding{}
 	Query  = queryBinding{}
 	Uri    = uriBinding{}
 	Header = headerBinding{}
