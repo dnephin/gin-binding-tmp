@@ -13,16 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type appkey struct {
-	Appkey string `json:"appkey" form:"appkey"`
-}
-
-type QueryTest struct {
-	Page int `json:"page" form:"page"`
-	Size int `json:"size" form:"size"`
-	appkey
-}
-
 type FooStruct struct {
 	Foo string `msgpack:"foo" json:"foo" form:"foo" xml:"foo" binding:"required,max=32"`
 }
@@ -30,14 +20,6 @@ type FooStruct struct {
 type FooBarStruct struct {
 	FooStruct
 	Bar string `msgpack:"bar" json:"bar" form:"bar" xml:"bar" binding:"required"`
-}
-
-type FooStructUseNumber struct {
-	Foo any `json:"foo" binding:"required"`
-}
-
-type FooStructDisallowUnknownFields struct {
-	Foo any `json:"foo" binding:"required"`
 }
 
 type FooStructForMapType struct {

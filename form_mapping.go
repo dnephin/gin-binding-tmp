@@ -36,7 +36,7 @@ func decode(target any, source map[string][]string, tag string) error {
 
 type formSource map[string][]string
 
-func mapping(value reflect.Value, field reflect.StructField, setter formSource, tag string) (bool, error) {
+func mapping(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
 	if field.Tag.Get(tag) == "-" { // just ignoring this field
 		return false, nil
 	}
@@ -50,7 +50,7 @@ func mapping(value reflect.Value, field reflect.StructField, setter formSource, 
 			isNew = true
 			vPtr = reflect.New(value.Type().Elem())
 		}
-		isSet, err := mapping(vPtr.Elem(), field, setter, tag)
+		isSet, err := mapping(vPtr.Elem(), field, source, tag)
 		if err != nil {
 			return false, err
 		}
@@ -61,7 +61,7 @@ func mapping(value reflect.Value, field reflect.StructField, setter formSource, 
 	}
 
 	if vKind != reflect.Struct || !field.Anonymous {
-		ok, err := tryToSetValue(value, field, setter, tag)
+		ok, err := tryToSetValue(value, field, source, tag)
 		if err != nil {
 			return false, err
 		}
@@ -79,7 +79,7 @@ func mapping(value reflect.Value, field reflect.StructField, setter formSource, 
 			if sf.PkgPath != "" && !sf.Anonymous { // unexported
 				continue
 			}
-			ok, err := mapping(value.Field(i), sf, setter, tag)
+			ok, err := mapping(value.Field(i), sf, source, tag)
 			if err != nil {
 				return false, err
 			}
@@ -91,10 +91,7 @@ func mapping(value reflect.Value, field reflect.StructField, setter formSource, 
 }
 
 func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
-	var tagValue string
-
-	tagValue = field.Tag.Get(tag)
-	tagValue, _ = head(tagValue, ",")
+	tagValue, _, _ := strings.Cut(field.Tag.Get(tag), ",")
 
 	if tagValue == "" { // default value is FieldName
 		tagValue = field.Name
@@ -121,11 +118,11 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 		if len(vs) > 0 {
 			val = vs[0]
 		}
-		return true, setWithProperType(val, value)
+		return true, setValue(val, value)
 	}
 }
 
-func setWithProperType(val string, value reflect.Value) error {
+func setValue(val string, value reflect.Value) error {
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
 		return u.UnmarshalText(stringToBytes(val))
 	}
@@ -224,30 +221,20 @@ func setFloatField(val string, bitSize int, field reflect.Value) error {
 	return err
 }
 
-func setArray(vals []string, value reflect.Value) error {
-	for i, s := range vals {
-		err := setWithProperType(s, value.Index(i))
-		if err != nil {
+func setArray(source []string, value reflect.Value) error {
+	for i, s := range source {
+		if err := setValue(s, value.Index(i)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func setSlice(vals []string, value reflect.Value) error {
-	slice := reflect.MakeSlice(value.Type(), len(vals), len(vals))
-	err := setArray(vals, slice)
-	if err != nil {
+func setSlice(source []string, value reflect.Value) error {
+	slice := reflect.MakeSlice(value.Type(), len(source), len(source))
+	if err := setArray(source, slice); err != nil {
 		return err
 	}
 	value.Set(slice)
 	return nil
-}
-
-func head(str, sep string) (head string, tail string) {
-	idx := strings.Index(str, sep)
-	if idx < 0 {
-		return str, ""
-	}
-	return str[:idx], str[idx+len(sep):]
 }
