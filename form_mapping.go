@@ -110,22 +110,22 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 
 	switch value.Kind() {
 	case reflect.Slice:
-		return true, setSlice(vs, value, field)
+		return true, setSlice(vs, value)
 	case reflect.Array:
 		if len(vs) != value.Len() {
 			return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
 		}
-		return true, setArray(vs, value, field)
+		return true, setArray(vs, value)
 	default:
 		var val string
 		if len(vs) > 0 {
 			val = vs[0]
 		}
-		return true, setWithProperType(val, value, field)
+		return true, setWithProperType(val, value)
 	}
 }
 
-func setWithProperType(val string, value reflect.Value, field reflect.StructField) error {
+func setWithProperType(val string, value reflect.Value) error {
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
 		return u.UnmarshalText(stringToBytes(val))
 	}
@@ -224,9 +224,9 @@ func setFloatField(val string, bitSize int, field reflect.Value) error {
 	return err
 }
 
-func setArray(vals []string, value reflect.Value, field reflect.StructField) error {
+func setArray(vals []string, value reflect.Value) error {
 	for i, s := range vals {
-		err := setWithProperType(s, value.Index(i), field)
+		err := setWithProperType(s, value.Index(i))
 		if err != nil {
 			return err
 		}
@@ -234,9 +234,9 @@ func setArray(vals []string, value reflect.Value, field reflect.StructField) err
 	return nil
 }
 
-func setSlice(vals []string, value reflect.Value, field reflect.StructField) error {
+func setSlice(vals []string, value reflect.Value) error {
 	slice := reflect.MakeSlice(value.Type(), len(vals), len(vals))
-	err := setArray(vals, slice, field)
+	err := setArray(vals, slice)
 	if err != nil {
 		return err
 	}
