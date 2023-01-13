@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestMappingBaseTypes(t *testing.T) {
@@ -52,10 +52,10 @@ func TestMappingBaseTypes(t *testing.T) {
 		field := val.Elem().Type().Field(0)
 
 		_, err := mapping(val, emptyField, formSource{field.Name: {tt.form}}, "form")
-		assert.NoError(t, err, testName)
+		assert.NilError(t, err, testName)
 
 		actual := val.Elem().Field(0).Interface()
-		assert.Equal(t, tt.expect, actual, testName)
+		assert.DeepEqual(t, tt.expect, actual)
 	}
 }
 
@@ -64,7 +64,7 @@ func TestMappingSkipField(t *testing.T) {
 		A int
 	}
 	err := decode(&s, formSource{}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 
 	assert.Equal(t, 0, s.A)
 }
@@ -75,7 +75,7 @@ func TestMappingIgnoreField(t *testing.T) {
 		B int `form:"-"`
 	}
 	err := decode(&s, formSource{"A": {"9"}, "B": {"9"}}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 
 	assert.Equal(t, 9, s.A)
 	assert.Equal(t, 0, s.B)
@@ -87,7 +87,7 @@ func TestMappingUnexportedField(t *testing.T) {
 		b int `form:"b"`
 	}
 	err := decode(&s, formSource{"a": {"9"}, "b": {"9"}}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 
 	assert.Equal(t, 9, s.A)
 	assert.Equal(t, 0, s.b)
@@ -98,7 +98,7 @@ func TestMappingPrivateField(t *testing.T) {
 		f int `form:"field"`
 	}
 	err := decode(&s, formSource{"field": {"6"}}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, 0, s.f)
 }
 
@@ -108,8 +108,7 @@ func TestMappingUnknownFieldType(t *testing.T) {
 	}
 
 	err := decode(&s, formSource{"U": {"unknown"}}, "form")
-	assert.Error(t, err)
-	assert.Equal(t, errUnknownType, err)
+	assert.ErrorIs(t, err, errUnknownType)
 }
 
 func TestBindURI(t *testing.T) {
@@ -117,7 +116,7 @@ func TestBindURI(t *testing.T) {
 		F int `uri:"field"`
 	}
 	err := BindURI(map[string][]string{"field": {"6"}}, &s)
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, 6, s.F)
 }
 
@@ -126,7 +125,7 @@ func TestMappingForm(t *testing.T) {
 		F int `form:"field"`
 	}
 	err := decode(&s, map[string][]string{"field": {"6"}}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, 6, s.F)
 }
 
@@ -137,17 +136,17 @@ func TestMappingSlice(t *testing.T) {
 
 	// default value
 	err := decode(&s, formSource{"slice": []string{"9"}}, "form")
-	assert.NoError(t, err)
-	assert.Equal(t, []int{9}, s.Slice)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []int{9}, s.Slice)
 
 	// ok
 	err = decode(&s, formSource{"slice": {"3", "4"}}, "form")
-	assert.NoError(t, err)
-	assert.Equal(t, []int{3, 4}, s.Slice)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []int{3, 4}, s.Slice)
 
 	// error
 	err = decode(&s, formSource{"slice": {"wrong"}}, "form")
-	assert.Error(t, err)
+	assert.ErrorContains(t, err, "invalid syntax")
 }
 
 func TestMappingArray(t *testing.T) {
@@ -157,20 +156,20 @@ func TestMappingArray(t *testing.T) {
 
 	// wrong default
 	err := decode(&s, formSource{"array": []string{"9"}}, "form")
-	assert.Error(t, err)
+	assert.ErrorContains(t, err, "is not valid value for [2]int")
 
 	// ok
 	err = decode(&s, formSource{"array": {"3", "4"}}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err, "what")
 	assert.Equal(t, [2]int{3, 4}, s.Array)
 
 	// error - not enough vals
 	err = decode(&s, formSource{"array": {"3"}}, "form")
-	assert.Error(t, err)
+	assert.ErrorContains(t, err, "is not valid value for [2]int")
 
 	// error - wrong value
 	err = decode(&s, formSource{"array": {"wrong"}}, "form")
-	assert.Error(t, err)
+	assert.ErrorContains(t, err, "is not valid value for [2]int")
 }
 
 func TestMappingStructField(t *testing.T) {
@@ -181,7 +180,7 @@ func TestMappingStructField(t *testing.T) {
 	}
 
 	err := decode(&s, formSource{"J": {`{"I": 9}`}}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, 9, s.J.I)
 }
 
@@ -191,8 +190,8 @@ func TestMappingMapField(t *testing.T) {
 	}
 
 	err := decode(&s, formSource{"M": {`{"one": 1}`}}, "form")
-	assert.NoError(t, err)
-	assert.Equal(t, map[string]int{"one": 1}, s.M)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, map[string]int{"one": 1}, s.M)
 }
 
 func TestMappingIgnoredCircularRef(t *testing.T) {
@@ -202,5 +201,5 @@ func TestMappingIgnoredCircularRef(t *testing.T) {
 	var s S
 
 	err := decode(&s, formSource{}, "form")
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 }

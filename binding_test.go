@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"gotest.tools/v3/assert"
 )
 
 type FooStruct struct {
@@ -31,33 +31,23 @@ type FooStructForBoolType struct {
 }
 
 func TestBindingQuery(t *testing.T) {
-	testQueryBinding(t, "POST",
-		"/?foo=bar&bar=foo", "/",
-		"foo=unused", "bar2=foo")
+	testQueryBinding(t, "POST", "/?foo=bar&bar=foo", "foo=unused")
 }
 
 func TestBindingQuery2(t *testing.T) {
-	testQueryBinding(t, "GET",
-		"/?foo=bar&bar=foo", "/?bar2=foo",
-		"foo=unused", "")
+	testQueryBinding(t, "GET", "/?foo=bar&bar=foo", "foo=unused")
 }
 
 func TestBindingQueryFail(t *testing.T) {
-	testQueryBindingFail(t, "POST",
-		"/?map_foo=", "/",
-		"map_foo=unused", "bar2=foo")
+	testQueryBindingFail(t, "POST", "/?map_foo=", "map_foo=unused")
 }
 
 func TestBindingQueryFail2(t *testing.T) {
-	testQueryBindingFail(t, "GET",
-		"/?map_foo=", "/?bar2=foo",
-		"map_foo=unused", "")
+	testQueryBindingFail(t, "GET", "/?map_foo=", "map_foo=unused")
 }
 
 func TestBindingQueryBoolFail(t *testing.T) {
-	testQueryBindingBoolFail(t, "GET",
-		"/?bool_foo=fasl", "/?bar2=foo",
-		"bool_foo=unused", "")
+	testQueryBindingBoolFail(t, "GET", "/?bool_foo=fasl", "bool_foo=unused")
 }
 
 func TestUriBinding(t *testing.T) {
@@ -68,15 +58,15 @@ func TestUriBinding(t *testing.T) {
 	var tag Tag
 	m := make(map[string][]string)
 	m["name"] = []string{"thinkerou"}
-	assert.NoError(t, BindURI(m, &tag))
+	assert.NilError(t, BindURI(m, &tag))
 	assert.Equal(t, "thinkerou", tag.Name)
 
 	type NotSupportStruct struct {
 		Name map[string]any `uri:"name"`
 	}
 	var not NotSupportStruct
-	assert.Error(t, BindURI(m, &not))
-	assert.Equal(t, map[string]any(nil), not.Name)
+	assert.ErrorContains(t, BindURI(m, &not), "invalid character")
+	assert.DeepEqual(t, map[string]any(nil), not.Name)
 }
 
 func TestUriInnerBinding(t *testing.T) {
@@ -96,43 +86,43 @@ func TestUriInnerBinding(t *testing.T) {
 	}
 
 	var tag Tag
-	assert.NoError(t, BindURI(m, &tag))
+	assert.NilError(t, BindURI(m, &tag))
 	assert.Equal(t, tag.Name, expectedName)
 	assert.Equal(t, tag.S.Age, expectedAge)
 }
 
 const MIMEPOSTForm = "application/x-www-form-urlencoded"
 
-func testQueryBinding(t *testing.T, method, path, badPath, body, badBody string) {
+func testQueryBinding(t *testing.T, method, path, body string) {
 	obj := FooBarStruct{}
 	req := requestWithBody(method, path, body)
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
 	err := BindQuery(req, &obj)
-	assert.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, "bar", obj.Foo)
 	assert.Equal(t, "foo", obj.Bar)
 }
 
-func testQueryBindingFail(t *testing.T, method, path, badPath, body, badBody string) {
+func testQueryBindingFail(t *testing.T, method, path, body string) {
 	obj := FooStructForMapType{}
 	req := requestWithBody(method, path, body)
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
 	err := BindQuery(req, &obj)
-	assert.Error(t, err)
+	assert.Error(t, err, "unexpected end of JSON input")
 }
 
-func testQueryBindingBoolFail(t *testing.T, method, path, badPath, body, badBody string) {
+func testQueryBindingBoolFail(t *testing.T, method, path, body string) {
 	obj := FooStructForBoolType{}
 	req := requestWithBody(method, path, body)
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
 	err := BindQuery(req, &obj)
-	assert.Error(t, err)
+	assert.ErrorContains(t, err, "invalid syntax")
 }
 
 func requestWithBody(method, path, body string) (req *http.Request) {
