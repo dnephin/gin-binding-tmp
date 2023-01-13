@@ -79,11 +79,9 @@ func TestBindingQueryBoolFail(t *testing.T) {
 }
 
 func TestBindingQueryStringMap(t *testing.T) {
-	b := Query
-
 	obj := make(map[string]string)
 	req := requestWithBody("GET", "/?foo=bar&hello=world", "")
-	err := b.Bind(req, &obj)
+	err := BindQuery(req, &obj)
 	assert.NoError(t, err)
 	assert.NotNil(t, obj)
 	assert.Len(t, obj, 2)
@@ -92,7 +90,7 @@ func TestBindingQueryStringMap(t *testing.T) {
 
 	obj = make(map[string]string)
 	req = requestWithBody("GET", "/?foo=bar&foo=2&hello=world", "") // should pick last
-	err = b.Bind(req, &obj)
+	err = BindQuery(req, &obj)
 	assert.NoError(t, err)
 	assert.NotNil(t, obj)
 	assert.Len(t, obj, 2)
@@ -101,8 +99,6 @@ func TestBindingQueryStringMap(t *testing.T) {
 }
 
 func TestUriBinding(t *testing.T) {
-	b := Uri
-	assert.Equal(t, "uri", b.Name())
 
 	type Tag struct {
 		Name string `uri:"name"`
@@ -110,14 +106,14 @@ func TestUriBinding(t *testing.T) {
 	var tag Tag
 	m := make(map[string][]string)
 	m["name"] = []string{"thinkerou"}
-	assert.NoError(t, b.BindUri(m, &tag))
+	assert.NoError(t, BindURI(m, &tag))
 	assert.Equal(t, "thinkerou", tag.Name)
 
 	type NotSupportStruct struct {
 		Name map[string]any `uri:"name"`
 	}
 	var not NotSupportStruct
-	assert.Error(t, b.BindUri(m, &not))
+	assert.Error(t, BindURI(m, &not))
 	assert.Equal(t, map[string]any(nil), not.Name)
 }
 
@@ -138,7 +134,7 @@ func TestUriInnerBinding(t *testing.T) {
 	}
 
 	var tag Tag
-	assert.NoError(t, Uri.BindUri(m, &tag))
+	assert.NoError(t, BindURI(m, &tag))
 	assert.Equal(t, tag.Name, expectedName)
 	assert.Equal(t, tag.S.Age, expectedAge)
 }
@@ -146,43 +142,34 @@ func TestUriInnerBinding(t *testing.T) {
 const MIMEPOSTForm = "application/x-www-form-urlencoded"
 
 func testQueryBinding(t *testing.T, method, path, badPath, body, badBody string) {
-	b := Query
-	assert.Equal(t, "query", b.Name())
-
 	obj := FooBarStruct{}
 	req := requestWithBody(method, path, body)
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
-	err := b.Bind(req, &obj)
+	err := BindQuery(req, &obj)
 	assert.NoError(t, err)
 	assert.Equal(t, "bar", obj.Foo)
 	assert.Equal(t, "foo", obj.Bar)
 }
 
 func testQueryBindingFail(t *testing.T, method, path, badPath, body, badBody string) {
-	b := Query
-	assert.Equal(t, "query", b.Name())
-
 	obj := FooStructForMapType{}
 	req := requestWithBody(method, path, body)
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
-	err := b.Bind(req, &obj)
+	err := BindQuery(req, &obj)
 	assert.Error(t, err)
 }
 
 func testQueryBindingBoolFail(t *testing.T, method, path, badPath, body, badBody string) {
-	b := Query
-	assert.Equal(t, "query", b.Name())
-
 	obj := FooStructForBoolType{}
 	req := requestWithBody(method, path, body)
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
-	err := b.Bind(req, &obj)
+	err := BindQuery(req, &obj)
 	assert.Error(t, err)
 }
 

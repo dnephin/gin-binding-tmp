@@ -34,10 +34,6 @@ func mapForm(ptr any, form map[string][]string) error {
 	return mapFormByTag(ptr, form, "form")
 }
 
-func MapFormWithTag(ptr any, form map[string][]string, tag string) error {
-	return mapFormByTag(ptr, form, tag)
-}
-
 var emptyField = reflect.StructField{}
 
 func mapFormByTag(ptr any, form map[string][]string, tag string) error {
