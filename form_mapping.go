@@ -25,34 +25,11 @@ func BindQuery(req *http.Request, obj any) error {
 	return decode(obj, values, "form")
 }
 
-var (
-	errUnknownType = errors.New("unknown type")
-
-	// ErrConvertMapStringSlice can not convert to map[string][]string
-	ErrConvertMapStringSlice = errors.New("can not convert to map slices of strings")
-
-	// ErrConvertToMapString can not convert to map[string]string
-	ErrConvertToMapString = errors.New("can not convert to map of strings")
-)
+var errUnknownType = errors.New("unknown type")
 
 var emptyField = reflect.StructField{}
 
 func decode(target any, source map[string][]string, tag string) error {
-	// Check if ptr is a map
-	ptrVal := reflect.ValueOf(target)
-	var pointed any
-	if ptrVal.Kind() == reflect.Ptr {
-		ptrVal = ptrVal.Elem()
-		pointed = ptrVal.Interface()
-	}
-	if ptrVal.Kind() == reflect.Map &&
-		ptrVal.Type().Key().Kind() == reflect.String {
-		if pointed != nil {
-			target = pointed
-		}
-		return setFormMap(target, source)
-	}
-
 	return mappingByPtr(target, formSource(source), tag)
 }
 
@@ -319,30 +296,4 @@ func head(str, sep string) (head string, tail string) {
 		return str, ""
 	}
 	return str[:idx], str[idx+len(sep):]
-}
-
-func setFormMap(ptr any, form map[string][]string) error {
-	el := reflect.TypeOf(ptr).Elem()
-
-	if el.Kind() == reflect.Slice {
-		ptrMap, ok := ptr.(map[string][]string)
-		if !ok {
-			return ErrConvertMapStringSlice
-		}
-		for k, v := range form {
-			ptrMap[k] = v
-		}
-
-		return nil
-	}
-
-	ptrMap, ok := ptr.(map[string]string)
-	if !ok {
-		return ErrConvertToMapString
-	}
-	for k, v := range form {
-		ptrMap[k] = v[len(v)-1] // pick last
-	}
-
-	return nil
 }

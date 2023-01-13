@@ -78,26 +78,6 @@ func TestBindingQueryBoolFail(t *testing.T) {
 		"bool_foo=unused", "")
 }
 
-func TestBindingQueryStringMap(t *testing.T) {
-	obj := make(map[string]string)
-	req := requestWithBody("GET", "/?foo=bar&hello=world", "")
-	err := BindQuery(req, &obj)
-	assert.NoError(t, err)
-	assert.NotNil(t, obj)
-	assert.Len(t, obj, 2)
-	assert.Equal(t, "bar", obj["foo"])
-	assert.Equal(t, "world", obj["hello"])
-
-	obj = make(map[string]string)
-	req = requestWithBody("GET", "/?foo=bar&foo=2&hello=world", "") // should pick last
-	err = BindQuery(req, &obj)
-	assert.NoError(t, err)
-	assert.NotNil(t, obj)
-	assert.Len(t, obj, 2)
-	assert.Equal(t, "2", obj["foo"])
-	assert.Equal(t, "world", obj["hello"])
-}
-
 func TestUriBinding(t *testing.T) {
 
 	type Tag struct {
