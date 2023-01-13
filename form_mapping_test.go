@@ -59,20 +59,6 @@ func TestMappingBaseTypes(t *testing.T) {
 	}
 }
 
-func TestMappingDefault(t *testing.T) {
-	var s struct {
-		Int   int    `form:",default=9"`
-		Slice []int  `form:",default=9"`
-		Array [1]int `form:",default=9"`
-	}
-	err := decode(&s, formSource{}, "form")
-	assert.NoError(t, err)
-
-	assert.Equal(t, 9, s.Int)
-	assert.Equal(t, []int{9}, s.Slice)
-	assert.Equal(t, [1]int{9}, s.Array)
-}
-
 func TestMappingSkipField(t *testing.T) {
 	var s struct {
 		A int
@@ -146,11 +132,11 @@ func TestMappingForm(t *testing.T) {
 
 func TestMappingSlice(t *testing.T) {
 	var s struct {
-		Slice []int `form:"slice,default=9"`
+		Slice []int `form:"slice"`
 	}
 
 	// default value
-	err := decode(&s, formSource{}, "form")
+	err := decode(&s, formSource{"slice": []string{"9"}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, []int{9}, s.Slice)
 
@@ -166,11 +152,11 @@ func TestMappingSlice(t *testing.T) {
 
 func TestMappingArray(t *testing.T) {
 	var s struct {
-		Array [2]int `form:"array,default=9"`
+		Array [2]int `form:"array"`
 	}
 
 	// wrong default
-	err := decode(&s, formSource{}, "form")
+	err := decode(&s, formSource{"array": []string{"9"}}, "form")
 	assert.Error(t, err)
 
 	// ok

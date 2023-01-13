@@ -90,17 +90,11 @@ func mapping(value reflect.Value, field reflect.StructField, setter formSource, 
 	return false, nil
 }
 
-type setOptions struct {
-	isDefaultExists bool
-	defaultValue    string
-}
-
 func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
 	var tagValue string
-	var setOpt setOptions
 
 	tagValue = field.Tag.Get(tag)
-	tagValue, opts := head(tagValue, ",")
+	tagValue, _ = head(tagValue, ",")
 
 	if tagValue == "" { // default value is FieldName
 		tagValue = field.Name
@@ -109,41 +103,21 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 		return false, nil
 	}
 
-	var opt string
-	for len(opts) > 0 {
-		opt, opts = head(opts, ",")
-
-		if k, v := head(opt, "="); k == "default" {
-			setOpt.isDefaultExists = true
-			setOpt.defaultValue = v
-		}
-	}
-
 	vs, ok := source[tagValue]
-	if !ok && !setOpt.isDefaultExists {
+	if !ok {
 		return false, nil
 	}
 
 	switch value.Kind() {
 	case reflect.Slice:
-		if !ok {
-			vs = []string{setOpt.defaultValue}
-		}
 		return true, setSlice(vs, value, field)
 	case reflect.Array:
-		if !ok {
-			vs = []string{setOpt.defaultValue}
-		}
 		if len(vs) != value.Len() {
 			return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
 		}
 		return true, setArray(vs, value, field)
 	default:
 		var val string
-		if !ok {
-			val = setOpt.defaultValue
-		}
-
 		if len(vs) > 0 {
 			val = vs[0]
 		}
