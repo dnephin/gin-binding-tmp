@@ -5,15 +5,14 @@
 package binding
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/gin-gonic/gin/internal/bytesconv"
-	"github.com/gin-gonic/gin/internal/json"
+	"unsafe"
 )
 
 var (
@@ -236,13 +235,24 @@ func setWithProperType(val string, value reflect.Value, field reflect.StructFiel
 		case time.Time:
 			return setTimeField(val, field, value)
 		}
-		return json.Unmarshal(bytesconv.StringToBytes(val), value.Addr().Interface())
+		return json.Unmarshal(stringToBytes(val), value.Addr().Interface())
 	case reflect.Map:
-		return json.Unmarshal(bytesconv.StringToBytes(val), value.Addr().Interface())
+		return json.Unmarshal(stringToBytes(val), value.Addr().Interface())
 	default:
 		return errUnknownType
 	}
 	return nil
+}
+
+// TODO: remove this optimization. Maybe change to []byte everywhere?
+// stringToBytes converts string to byte slice without a memory allocation.
+func stringToBytes(s string) []byte {
+	return *(*[]byte)(unsafe.Pointer(
+		&struct {
+			string
+			Cap int
+		}{s, len(s)},
+	))
 }
 
 func setIntField(val string, bitSize int, field reflect.Value) error {
