@@ -9,12 +9,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 	"unsafe"
 )
+
+func BindURI(m map[string][]string, obj any) error {
+	return decode(obj, m, "uri")
+}
+
+func BindQuery(req *http.Request, obj any) error {
+	values := req.URL.Query()
+	return decode(obj, values, "form")
+}
 
 var (
 	errUnknownType = errors.New("unknown type")
@@ -26,19 +36,11 @@ var (
 	ErrConvertToMapString = errors.New("can not convert to map of strings")
 )
 
-func mapURI(ptr any, m map[string][]string) error {
-	return mapFormByTag(ptr, m, "uri")
-}
-
-func mapForm(ptr any, form map[string][]string) error {
-	return mapFormByTag(ptr, form, "form")
-}
-
 var emptyField = reflect.StructField{}
 
-func mapFormByTag(ptr any, form map[string][]string, tag string) error {
+func decode(target any, source map[string][]string, tag string) error {
 	// Check if ptr is a map
-	ptrVal := reflect.ValueOf(ptr)
+	ptrVal := reflect.ValueOf(target)
 	var pointed any
 	if ptrVal.Kind() == reflect.Ptr {
 		ptrVal = ptrVal.Elem()
@@ -47,12 +49,12 @@ func mapFormByTag(ptr any, form map[string][]string, tag string) error {
 	if ptrVal.Kind() == reflect.Map &&
 		ptrVal.Type().Key().Kind() == reflect.String {
 		if pointed != nil {
-			ptr = pointed
+			target = pointed
 		}
-		return setFormMap(ptr, form)
+		return setFormMap(target, source)
 	}
 
-	return mappingByPtr(ptr, formSource(form), tag)
+	return mappingByPtr(target, formSource(source), tag)
 }
 
 // setter tries to set value on a walking by fields of a struct

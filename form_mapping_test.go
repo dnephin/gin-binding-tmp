@@ -127,11 +127,11 @@ func TestMappingUnknownFieldType(t *testing.T) {
 	assert.Equal(t, errUnknownType, err)
 }
 
-func TestMappingURI(t *testing.T) {
+func TestBindURI(t *testing.T) {
 	var s struct {
 		F int `uri:"field"`
 	}
-	err := mapURI(&s, map[string][]string{"field": {"6"}})
+	err := BindURI(map[string][]string{"field": {"6"}}, &s)
 	assert.NoError(t, err)
 	assert.Equal(t, 6, s.F)
 }
@@ -140,7 +140,7 @@ func TestMappingForm(t *testing.T) {
 	var s struct {
 		F int `form:"field"`
 	}
-	err := mapForm(&s, map[string][]string{"field": {"6"}})
+	err := decode(&s, map[string][]string{"field": {"6"}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, 6, s.F)
 }
@@ -158,13 +158,13 @@ func TestMappingTime(t *testing.T) {
 	time.Local, err = time.LoadLocation("Europe/Berlin")
 	assert.NoError(t, err)
 
-	err = mapForm(&s, map[string][]string{
+	err = decode(&s, map[string][]string{
 		"Time":      {"2019-01-20T16:02:58Z"},
 		"LocalTime": {"2019-01-20"},
 		"ZeroValue": {},
 		"CSTTime":   {"2019-01-20"},
 		"UTCTime":   {"2019-01-20"},
-	})
+	}, "form")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "2019-01-20 16:02:58 +0000 UTC", s.Time.String())
@@ -179,14 +179,14 @@ func TestMappingTime(t *testing.T) {
 	var wrongLoc struct {
 		Time time.Time `time_location:"wrong"`
 	}
-	err = mapForm(&wrongLoc, map[string][]string{"Time": {"2019-01-20T16:02:58Z"}})
+	err = decode(&wrongLoc, map[string][]string{"Time": {"2019-01-20T16:02:58Z"}}, "form")
 	assert.Error(t, err)
 
 	// wrong time value
 	var wrongTime struct {
 		Time time.Time
 	}
-	err = mapForm(&wrongTime, map[string][]string{"Time": {"wrong"}})
+	err = decode(&wrongTime, map[string][]string{"Time": {"wrong"}}, "form")
 	assert.Error(t, err)
 }
 
