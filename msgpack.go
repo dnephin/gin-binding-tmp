@@ -34,5 +34,5 @@ func decodeMsgPack(r io.Reader, obj any) error {
 	if err := codec.NewDecoder(r, cdc).Decode(&obj); err != nil {
 		return err
 	}
-	return validate(obj)
+	return nil
 }

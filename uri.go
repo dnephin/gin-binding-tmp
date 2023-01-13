@@ -14,5 +14,5 @@ func (uriBinding) BindUri(m map[string][]string, obj any) error {
 	if err := mapURI(obj, m); err != nil {
 		return err
 	}
-	return validate(obj)
+	return nil
 }

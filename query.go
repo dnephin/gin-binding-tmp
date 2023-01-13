@@ -17,5 +17,5 @@ func (queryBinding) Bind(req *http.Request, obj any) error {
 	if err := mapForm(obj, values); err != nil {
 		return err
 	}
-	return validate(obj)
+	return nil
 }

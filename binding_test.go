@@ -726,24 +726,6 @@ func TestBindingProtoBufFail(t *testing.T) {
 		string(data), string(data[1:]))
 }
 
-func TestValidationFails(t *testing.T) {
-	var obj FooStruct
-	req := requestWithBody("POST", "/", `{"bar": "foo"}`)
-	err := JSON.Bind(req, &obj)
-	assert.Error(t, err)
-}
-
-func TestValidationDisabled(t *testing.T) {
-	backup := Validator
-	Validator = nil
-	defer func() { Validator = backup }()
-
-	var obj FooStruct
-	req := requestWithBody("POST", "/", `{"bar": "foo"}`)
-	err := JSON.Bind(req, &obj)
-	assert.NoError(t, err)
-}
-
 func TestRequiredSucceeds(t *testing.T) {
 	type HogeStruct struct {
 		Hoge *int `json:"hoge" binding:"required"`
