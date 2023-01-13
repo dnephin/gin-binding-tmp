@@ -30,29 +30,13 @@ var errUnknownType = errors.New("unknown type")
 var emptyField = reflect.StructField{}
 
 func decode(target any, source map[string][]string, tag string) error {
-	return mappingByPtr(target, formSource(source), tag)
-}
-
-// setter tries to set value on a walking by fields of a struct
-type setter interface {
-	TrySet(value reflect.Value, field reflect.StructField, key string, opt setOptions) (isSet bool, err error)
+	_, err := mapping(reflect.ValueOf(target), emptyField, source, tag)
+	return err
 }
 
 type formSource map[string][]string
 
-var _ setter = formSource(nil)
-
-// TrySet tries to set a value by request's form source (like map[string][]string)
-func (form formSource) TrySet(value reflect.Value, field reflect.StructField, tagValue string, opt setOptions) (isSet bool, err error) {
-	return setByForm(value, field, form, tagValue, opt)
-}
-
-func mappingByPtr(ptr any, setter setter, tag string) error {
-	_, err := mapping(reflect.ValueOf(ptr), emptyField, setter, tag)
-	return err
-}
-
-func mapping(value reflect.Value, field reflect.StructField, setter setter, tag string) (bool, error) {
+func mapping(value reflect.Value, field reflect.StructField, setter formSource, tag string) (bool, error) {
 	if field.Tag.Get(tag) == "-" { // just ignoring this field
 		return false, nil
 	}
@@ -111,7 +95,7 @@ type setOptions struct {
 	defaultValue    string
 }
 
-func tryToSetValue(value reflect.Value, field reflect.StructField, setter setter, tag string) (bool, error) {
+func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
 	var tagValue string
 	var setOpt setOptions
 
@@ -135,24 +119,20 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, setter setter
 		}
 	}
 
-	return setter.TrySet(value, field, tagValue, setOpt)
-}
-
-func setByForm(value reflect.Value, field reflect.StructField, form map[string][]string, tagValue string, opt setOptions) (isSet bool, err error) {
-	vs, ok := form[tagValue]
-	if !ok && !opt.isDefaultExists {
+	vs, ok := source[tagValue]
+	if !ok && !setOpt.isDefaultExists {
 		return false, nil
 	}
 
 	switch value.Kind() {
 	case reflect.Slice:
 		if !ok {
-			vs = []string{opt.defaultValue}
+			vs = []string{setOpt.defaultValue}
 		}
 		return true, setSlice(vs, value, field)
 	case reflect.Array:
 		if !ok {
-			vs = []string{opt.defaultValue}
+			vs = []string{setOpt.defaultValue}
 		}
 		if len(vs) != value.Len() {
 			return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
@@ -161,7 +141,7 @@ func setByForm(value reflect.Value, field reflect.StructField, form map[string][
 	default:
 		var val string
 		if !ok {
-			val = opt.defaultValue
+			val = setOpt.defaultValue
 		}
 
 		if len(vs) > 0 {

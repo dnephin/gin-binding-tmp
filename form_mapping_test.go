@@ -65,7 +65,7 @@ func TestMappingDefault(t *testing.T) {
 		Slice []int  `form:",default=9"`
 		Array [1]int `form:",default=9"`
 	}
-	err := mappingByPtr(&s, formSource{}, "form")
+	err := decode(&s, formSource{}, "form")
 	assert.NoError(t, err)
 
 	assert.Equal(t, 9, s.Int)
@@ -77,7 +77,7 @@ func TestMappingSkipField(t *testing.T) {
 	var s struct {
 		A int
 	}
-	err := mappingByPtr(&s, formSource{}, "form")
+	err := decode(&s, formSource{}, "form")
 	assert.NoError(t, err)
 
 	assert.Equal(t, 0, s.A)
@@ -88,7 +88,7 @@ func TestMappingIgnoreField(t *testing.T) {
 		A int `form:"A"`
 		B int `form:"-"`
 	}
-	err := mappingByPtr(&s, formSource{"A": {"9"}, "B": {"9"}}, "form")
+	err := decode(&s, formSource{"A": {"9"}, "B": {"9"}}, "form")
 	assert.NoError(t, err)
 
 	assert.Equal(t, 9, s.A)
@@ -100,7 +100,7 @@ func TestMappingUnexportedField(t *testing.T) {
 		A int `form:"a"`
 		b int `form:"b"`
 	}
-	err := mappingByPtr(&s, formSource{"a": {"9"}, "b": {"9"}}, "form")
+	err := decode(&s, formSource{"a": {"9"}, "b": {"9"}}, "form")
 	assert.NoError(t, err)
 
 	assert.Equal(t, 9, s.A)
@@ -111,7 +111,7 @@ func TestMappingPrivateField(t *testing.T) {
 	var s struct {
 		f int `form:"field"`
 	}
-	err := mappingByPtr(&s, formSource{"field": {"6"}}, "form")
+	err := decode(&s, formSource{"field": {"6"}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, 0, s.f)
 }
@@ -121,7 +121,7 @@ func TestMappingUnknownFieldType(t *testing.T) {
 		U uintptr
 	}
 
-	err := mappingByPtr(&s, formSource{"U": {"unknown"}}, "form")
+	err := decode(&s, formSource{"U": {"unknown"}}, "form")
 	assert.Error(t, err)
 	assert.Equal(t, errUnknownType, err)
 }
@@ -150,17 +150,17 @@ func TestMappingSlice(t *testing.T) {
 	}
 
 	// default value
-	err := mappingByPtr(&s, formSource{}, "form")
+	err := decode(&s, formSource{}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, []int{9}, s.Slice)
 
 	// ok
-	err = mappingByPtr(&s, formSource{"slice": {"3", "4"}}, "form")
+	err = decode(&s, formSource{"slice": {"3", "4"}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, []int{3, 4}, s.Slice)
 
 	// error
-	err = mappingByPtr(&s, formSource{"slice": {"wrong"}}, "form")
+	err = decode(&s, formSource{"slice": {"wrong"}}, "form")
 	assert.Error(t, err)
 }
 
@@ -170,20 +170,20 @@ func TestMappingArray(t *testing.T) {
 	}
 
 	// wrong default
-	err := mappingByPtr(&s, formSource{}, "form")
+	err := decode(&s, formSource{}, "form")
 	assert.Error(t, err)
 
 	// ok
-	err = mappingByPtr(&s, formSource{"array": {"3", "4"}}, "form")
+	err = decode(&s, formSource{"array": {"3", "4"}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, [2]int{3, 4}, s.Array)
 
 	// error - not enough vals
-	err = mappingByPtr(&s, formSource{"array": {"3"}}, "form")
+	err = decode(&s, formSource{"array": {"3"}}, "form")
 	assert.Error(t, err)
 
 	// error - wrong value
-	err = mappingByPtr(&s, formSource{"array": {"wrong"}}, "form")
+	err = decode(&s, formSource{"array": {"wrong"}}, "form")
 	assert.Error(t, err)
 }
 
@@ -194,7 +194,7 @@ func TestMappingStructField(t *testing.T) {
 		}
 	}
 
-	err := mappingByPtr(&s, formSource{"J": {`{"I": 9}`}}, "form")
+	err := decode(&s, formSource{"J": {`{"I": 9}`}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, 9, s.J.I)
 }
@@ -204,7 +204,7 @@ func TestMappingMapField(t *testing.T) {
 		M map[string]int
 	}
 
-	err := mappingByPtr(&s, formSource{"M": {`{"one": 1}`}}, "form")
+	err := decode(&s, formSource{"M": {`{"one": 1}`}}, "form")
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]int{"one": 1}, s.M)
 }
@@ -215,6 +215,6 @@ func TestMappingIgnoredCircularRef(t *testing.T) {
 	}
 	var s S
 
-	err := mappingByPtr(&s, formSource{}, "form")
+	err := decode(&s, formSource{}, "form")
 	assert.NoError(t, err)
 }
