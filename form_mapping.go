@@ -26,94 +26,63 @@ func BindQuery(req *http.Request, obj any) error {
 
 var errUnknownType = errors.New("unknown type")
 
-var emptyField = reflect.StructField{}
-
 func decode(target any, source map[string][]string, tag string) error {
-	_, err := mapping(reflect.ValueOf(target), emptyField, source, tag)
-	return err
+	return decodeStruct(reflect.ValueOf(target), source, tag)
 }
 
 type formSource map[string][]string
 
-func mapping(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
+func decodeStruct(value reflect.Value, source formSource, tag string) error {
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
 
-	vKind := value.Kind()
-	if vKind != reflect.Struct || !field.Anonymous {
-		ok, err := tryToSetValue(value, field, source, tag)
+	for i := 0; i < value.NumField(); i++ {
+		sf := value.Type().Field(i)
+		if sf.PkgPath != "" && !sf.Anonymous { // unexported
+			continue
+		}
+		name, _, _ := strings.Cut(sf.Tag.Get(tag), ",")
+		if name == "-" {
+			return nil
+		}
+		// TODO: remove
+		if name == "" { // default value is FieldName
+			name = sf.Name
+		}
+
+		var err error
+		if sf.Type.Kind() == reflect.Struct {
+			err = decodeStruct(value.Field(i), source, tag)
+		} else {
+			err = decodeContainer(value.Field(i), source, name)
+		}
 		if err != nil {
-			return false, err
-		}
-		if ok {
-			return true, nil
+			return err
 		}
 	}
-
-	if vKind == reflect.Struct {
-		tValue := value.Type()
-
-		var isSet bool
-		for i := 0; i < value.NumField(); i++ {
-			sf := tValue.Field(i)
-			if sf.PkgPath != "" && !sf.Anonymous { // unexported
-				continue
-			}
-
-			var err error
-			var ok bool
-			if sf.Type.Kind() == reflect.Struct {
-				ok, err = mapping(value.Field(i), sf, source, tag)
-			} else {
-				ok, err = tryToSetValue(value.Field(i), sf, source, tag)
-			}
-			if err != nil {
-				return false, err
-			}
-			isSet = isSet || ok
-		}
-		return isSet, nil
-	}
-	return false, nil
+	return nil
 }
 
-func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
-	tagValue, _, _ := strings.Cut(field.Tag.Get(tag), ",")
-	if tagValue == "-" {
-		return false, nil
+func decodeContainer(value reflect.Value, source formSource, name string) error {
+	values, ok := source[name]
+	if !ok || len(values) == 0 {
+		return nil
 	}
-
-	// TODO: remove
-	if tagValue == "" { // default value is FieldName
-		tagValue = field.Name
-	}
-	if tagValue == "" { // when field is "emptyField" variable
-		return false, nil
-	}
-
-	vs, ok := source[tagValue]
-	if !ok {
-		return false, nil
-	}
-
-	if len(vs) == 0 {
-		return false, nil
-	}
-	val := vs[0]
+	val := values[0]
 
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
-		return true, u.UnmarshalText(stringToBytes(val))
+		return u.UnmarshalText(stringToBytes(val))
 	}
 
 	switch value.Kind() {
 	case reflect.Slice:
-		return true, setSlice(vs, value)
+		return setSlice(values, value)
 	case reflect.Array:
-		if len(vs) != value.Len() {
-			return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
+		if len(values) != value.Len() {
+			return fmt.Errorf("%q is not valid value for %s", values, value.Type().String())
 		}
-		return true, setArray(vs, value)
+		return setArray(values, value)
 	case reflect.Pointer:
 		// TODO: can we reduce this at all?
 		var isNew bool
@@ -122,20 +91,24 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 			isNew = true
 			vPtr = reflect.New(value.Type().Elem())
 		}
-		isSet, err := mapping(vPtr.Elem(), field, source, tag)
+		err := setValue(val, vPtr.Elem())
 		if err != nil {
-			return false, err
+			return err
 		}
-		if isNew && isSet {
+		if isNew {
 			value.Set(vPtr)
 		}
-		return isSet, nil
+		return nil
 	default:
-		return true, setValue(val, value)
+		return setValue(val, value)
 	}
 }
 
 func setValue(val string, value reflect.Value) error {
+	if val == "" {
+		return nil
+	}
+
 	switch value.Kind() {
 	case reflect.Int:
 		return setIntField(val, 0, value)
@@ -183,9 +156,6 @@ func stringToBytes(s string) []byte {
 }
 
 func setIntField(val string, bitSize int, field reflect.Value) error {
-	if val == "" {
-		val = "0"
-	}
 	intVal, err := strconv.ParseInt(val, 10, bitSize)
 	if err == nil {
 		field.SetInt(intVal)
@@ -194,9 +164,6 @@ func setIntField(val string, bitSize int, field reflect.Value) error {
 }
 
 func setUintField(val string, bitSize int, field reflect.Value) error {
-	if val == "" {
-		val = "0"
-	}
 	uintVal, err := strconv.ParseUint(val, 10, bitSize)
 	if err == nil {
 		field.SetUint(uintVal)
@@ -205,9 +172,6 @@ func setUintField(val string, bitSize int, field reflect.Value) error {
 }
 
 func setBoolField(val string, field reflect.Value) error {
-	if val == "" {
-		val = "false"
-	}
 	boolVal, err := strconv.ParseBool(val)
 	if err == nil {
 		field.SetBool(boolVal)
@@ -216,9 +180,6 @@ func setBoolField(val string, field reflect.Value) error {
 }
 
 func setFloatField(val string, bitSize int, field reflect.Value) error {
-	if val == "" {
-		val = "0.0"
-	}
 	floatVal, err := strconv.ParseFloat(val, bitSize)
 	if err == nil {
 		field.SetFloat(floatVal)

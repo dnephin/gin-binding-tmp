@@ -11,7 +11,7 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func TestMappingBaseTypes(t *testing.T) {
+func TestDecodeBaseTypes(t *testing.T) {
 	for _, tt := range []struct {
 		name   string
 		value  any
@@ -47,7 +47,7 @@ func TestMappingBaseTypes(t *testing.T) {
 			val := reflect.New(reflect.TypeOf(tt.value))
 			val.Elem().Set(reflect.ValueOf(tt.value))
 
-			_, err := mapping(val, emptyField, formSource{"F": {tt.source}}, "form")
+			err := decodeStruct(val, formSource{"F": {tt.source}}, "form")
 			assert.NilError(t, err, testName)
 
 			actual := val.Elem().Field(0).Interface()
