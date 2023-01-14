@@ -18,7 +18,7 @@ func TestMappingBaseTypes(t *testing.T) {
 	for _, tt := range []struct {
 		name   string
 		value  any
-		form   string
+		source string
 		expect any
 	}{
 		{"base type", struct{ F int }{}, "9", int(9)},
@@ -45,17 +45,16 @@ func TestMappingBaseTypes(t *testing.T) {
 	} {
 		tp := reflect.TypeOf(tt.value)
 		testName := tt.name + ":" + tp.Field(0).Type.String()
+		t.Run(testName, func(t *testing.T) {
+			val := reflect.New(reflect.TypeOf(tt.value))
+			val.Elem().Set(reflect.ValueOf(tt.value))
 
-		val := reflect.New(reflect.TypeOf(tt.value))
-		val.Elem().Set(reflect.ValueOf(tt.value))
+			_, err := mapping(val, emptyField, formSource{"F": {tt.source}}, "form")
+			assert.NilError(t, err, testName)
 
-		field := val.Elem().Type().Field(0)
-
-		_, err := mapping(val, emptyField, formSource{field.Name: {tt.form}}, "form")
-		assert.NilError(t, err, testName)
-
-		actual := val.Elem().Field(0).Interface()
-		assert.DeepEqual(t, tt.expect, actual)
+			actual := val.Elem().Field(0).Interface()
+			assert.DeepEqual(t, tt.expect, actual)
+		})
 	}
 }
 
