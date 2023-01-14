@@ -37,29 +37,11 @@ func decode(target any, source map[string][]string, tag string) error {
 type formSource map[string][]string
 
 func mapping(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
-	if field.Tag.Get(tag) == "-" { // just ignoring this field
-		return false, nil
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
 	}
 
 	vKind := value.Kind()
-
-	if vKind == reflect.Ptr {
-		var isNew bool
-		vPtr := value
-		if value.IsNil() {
-			isNew = true
-			vPtr = reflect.New(value.Type().Elem())
-		}
-		isSet, err := mapping(vPtr.Elem(), field, source, tag)
-		if err != nil {
-			return false, err
-		}
-		if isNew && isSet {
-			value.Set(vPtr)
-		}
-		return isSet, nil
-	}
-
 	if vKind != reflect.Struct || !field.Anonymous {
 		ok, err := tryToSetValue(value, field, source, tag)
 		if err != nil {
@@ -79,7 +61,14 @@ func mapping(value reflect.Value, field reflect.StructField, source formSource, 
 			if sf.PkgPath != "" && !sf.Anonymous { // unexported
 				continue
 			}
-			ok, err := mapping(value.Field(i), sf, source, tag)
+
+			var err error
+			var ok bool
+			if sf.Type.Kind() == reflect.Struct {
+				ok, err = mapping(value.Field(i), sf, source, tag)
+			} else {
+				ok, err = tryToSetValue(value.Field(i), sf, source, tag)
+			}
 			if err != nil {
 				return false, err
 			}
@@ -92,7 +81,11 @@ func mapping(value reflect.Value, field reflect.StructField, source formSource, 
 
 func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
 	tagValue, _, _ := strings.Cut(field.Tag.Get(tag), ",")
+	if tagValue == "-" {
+		return false, nil
+	}
 
+	// TODO: remove
 	if tagValue == "" { // default value is FieldName
 		tagValue = field.Name
 	}
@@ -105,6 +98,15 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 		return false, nil
 	}
 
+	if len(vs) == 0 {
+		return false, nil
+	}
+	val := vs[0]
+
+	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
+		return true, u.UnmarshalText(stringToBytes(val))
+	}
+
 	switch value.Kind() {
 	case reflect.Slice:
 		return true, setSlice(vs, value)
@@ -113,11 +115,23 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 			return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
 		}
 		return true, setArray(vs, value)
-	default:
-		var val string
-		if len(vs) > 0 {
-			val = vs[0]
+	case reflect.Pointer:
+		// TODO: can we reduce this at all?
+		var isNew bool
+		vPtr := value
+		if value.IsNil() {
+			isNew = true
+			vPtr = reflect.New(value.Type().Elem())
 		}
+		isSet, err := mapping(vPtr.Elem(), field, source, tag)
+		if err != nil {
+			return false, err
+		}
+		if isNew && isSet {
+			value.Set(vPtr)
+		}
+		return isSet, nil
+	default:
 		return true, setValue(val, value)
 	}
 }

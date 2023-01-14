@@ -14,12 +14,12 @@ import (
 )
 
 type FooStruct struct {
-	Foo string `msgpack:"foo" json:"foo" form:"foo" xml:"foo" binding:"required,max=32"`
+	Foo string `json:"foo" form:"foo"`
 }
 
 type FooBarStruct struct {
 	FooStruct
-	Bar string `msgpack:"bar" json:"bar" form:"bar" xml:"bar" binding:"required"`
+	Bar string `json:"bar" form:"bar"`
 }
 
 type FooStructForMapType struct {
