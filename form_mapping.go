@@ -31,61 +31,67 @@ func decode(target any, source map[string][]string, tag string) error {
 
 type formSource map[string][]string
 
-func decodeStruct(value reflect.Value, source formSource, tag string) error {
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
+func decodeStruct(target reflect.Value, source formSource, tag string) error {
+	if target.Kind() == reflect.Ptr {
+		target = target.Elem()
 	}
 
-	for i := 0; i < value.NumField(); i++ {
-		sf := value.Type().Field(i)
+	for i := 0; i < target.NumField(); i++ {
+		sf := target.Type().Field(i)
 		if sf.PkgPath != "" && !sf.Anonymous { // unexported
 			continue
 		}
-		name, _, _ := strings.Cut(sf.Tag.Get(tag), ",")
-		if name == "-" {
-			return nil
+
+		if sf.Type.Kind() == reflect.Struct {
+			if err := decodeStruct(target.Field(i), source, tag); err != nil {
+				return err
+			}
+			continue
 		}
 
-		var err error
-		if sf.Type.Kind() == reflect.Struct {
-			err = decodeStruct(value.Field(i), source, tag)
-		} else {
-			err = decodeContainer(value.Field(i), source, name)
-		}
-		if err != nil {
+		if err := decodeField(sf, target.Field(i), source, tag); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func decodeContainer(value reflect.Value, source formSource, name string) error {
+func decodeField(sf reflect.StructField, fieldTarget reflect.Value, source formSource, tag string) error {
+	name, _, _ := strings.Cut(sf.Tag.Get(tag), ",")
+	if name == "-" {
+		return nil
+	}
+
 	values, ok := source[name]
 	if !ok || len(values) == 0 {
 		return nil
 	}
-	val := values[0]
 
-	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
-		return u.UnmarshalText(stringToBytes(val))
+	if sf.Type.Kind() == reflect.Slice {
+		return setSlice(values, fieldTarget)
 	}
 
-	switch value.Kind() {
-	case reflect.Slice:
-		return setSlice(values, value)
+	val := values[0]
+	if fieldTarget.CanAddr() {
+		if u, ok := fieldTarget.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			return u.UnmarshalText(stringToBytes(val))
+		}
+	}
+
+	switch sf.Type.Kind() {
 	case reflect.Pointer:
-		vPtr := value
-		if value.IsNil() {
-			vPtr = reflect.New(value.Type().Elem())
+		vPtr := fieldTarget
+		if fieldTarget.IsNil() {
+			vPtr = reflect.New(fieldTarget.Type().Elem())
 		}
 		err := setValue(val, vPtr.Elem())
 		if err != nil {
 			return err
 		}
-		value.Set(vPtr)
+		fieldTarget.Set(vPtr)
 		return nil
 	default:
-		return setValue(val, value)
+		return setValue(val, fieldTarget)
 	}
 }
 
