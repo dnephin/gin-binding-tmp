@@ -46,10 +46,6 @@ func decodeStruct(value reflect.Value, source formSource, tag string) error {
 		if name == "-" {
 			return nil
 		}
-		// TODO: remove
-		if name == "" { // default value is FieldName
-			name = sf.Name
-		}
 
 		var err error
 		if sf.Type.Kind() == reflect.Struct {

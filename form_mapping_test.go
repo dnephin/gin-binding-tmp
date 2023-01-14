@@ -18,22 +18,54 @@ func TestDecodeBaseTypes(t *testing.T) {
 		source string
 		expect any
 	}{
-		{"base type", struct{ F int }{}, "9", int(9)},
-		{"base type", struct{ F int8 }{}, "9", int8(9)},
-		{"base type", struct{ F int16 }{}, "9", int16(9)},
-		{"base type", struct{ F int32 }{}, "9", int32(9)},
-		{"base type", struct{ F int64 }{}, "9", int64(9)},
-		{"base type", struct{ F uint }{}, "9", uint(9)},
-		{"base type", struct{ F uint8 }{}, "9", uint8(9)},
-		{"base type", struct{ F uint16 }{}, "9", uint16(9)},
-		{"base type", struct{ F uint32 }{}, "9", uint32(9)},
-		{"base type", struct{ F uint64 }{}, "9", uint64(9)},
-		{"base type", struct{ F bool }{}, "True", true},
-		{"base type", struct{ F float32 }{}, "9.1", float32(9.1)},
-		{"base type", struct{ F float64 }{}, "9.1", float64(9.1)},
-		{"base type", struct{ F string }{}, "test", "test"},
-		{"base type", struct{ F *int }{}, "9", ptr(9)},
-		{"base type", struct{ F *string }{}, "9", ptr("9")},
+		{"base type", struct {
+			F int `form:"F"`
+		}{}, "9", int(9)},
+		{"base type", struct {
+			F int8 `form:"F"`
+		}{}, "9", int8(9)},
+		{"base type", struct {
+			F int16 `form:"F"`
+		}{}, "9", int16(9)},
+		{"base type", struct {
+			F int32 `form:"F"`
+		}{}, "9", int32(9)},
+		{"base type", struct {
+			F int64 `form:"F"`
+		}{}, "9", int64(9)},
+		{"base type", struct {
+			F uint `form:"F"`
+		}{}, "9", uint(9)},
+		{"base type", struct {
+			F uint8 `form:"F"`
+		}{}, "9", uint8(9)},
+		{"base type", struct {
+			F uint16 `form:"F"`
+		}{}, "9", uint16(9)},
+		{"base type", struct {
+			F uint32 `form:"F"`
+		}{}, "9", uint32(9)},
+		{"base type", struct {
+			F uint64 `form:"F"`
+		}{}, "9", uint64(9)},
+		{"base type", struct {
+			F bool `form:"F"`
+		}{}, "True", true},
+		{"base type", struct {
+			F float32 `form:"F"`
+		}{}, "9.1", float32(9.1)},
+		{"base type", struct {
+			F float64 `form:"F"`
+		}{}, "9.1", float64(9.1)},
+		{"base type", struct {
+			F string `form:"F"`
+		}{}, "test", "test"},
+		{"base type", struct {
+			F *int `form:"F"`
+		}{}, "9", ptr(9)},
+		{"base type", struct {
+			F *string `form:"F"`
+		}{}, "9", ptr("9")},
 
 		// zero values
 		{"zero value", struct{ F int }{}, "", 0},
@@ -105,7 +137,7 @@ func TestMappingPrivateField(t *testing.T) {
 
 func TestMappingUnknownFieldType(t *testing.T) {
 	var s struct {
-		U uintptr
+		U uintptr `form:"U"`
 	}
 
 	err := decode(&s, formSource{"U": {"unknown"}}, "form")
