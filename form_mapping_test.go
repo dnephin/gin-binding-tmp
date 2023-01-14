@@ -12,9 +12,6 @@ import (
 )
 
 func TestMappingBaseTypes(t *testing.T) {
-	intPtr := func(i int) *int {
-		return &i
-	}
 	for _, tt := range []struct {
 		name   string
 		value  any
@@ -34,11 +31,12 @@ func TestMappingBaseTypes(t *testing.T) {
 		{"base type", struct{ F bool }{}, "True", true},
 		{"base type", struct{ F float32 }{}, "9.1", float32(9.1)},
 		{"base type", struct{ F float64 }{}, "9.1", float64(9.1)},
-		{"base type", struct{ F string }{}, "test", string("test")},
-		{"base type", struct{ F *int }{}, "9", intPtr(9)},
+		{"base type", struct{ F string }{}, "test", "test"},
+		{"base type", struct{ F *int }{}, "9", ptr(9)},
+		{"base type", struct{ F *string }{}, "9", ptr("9")},
 
 		// zero values
-		{"zero value", struct{ F int }{}, "", int(0)},
+		{"zero value", struct{ F int }{}, "", 0},
 		{"zero value", struct{ F uint }{}, "", uint(0)},
 		{"zero value", struct{ F bool }{}, "", false},
 		{"zero value", struct{ F float32 }{}, "", float32(0)},
@@ -56,6 +54,10 @@ func TestMappingBaseTypes(t *testing.T) {
 			assert.DeepEqual(t, tt.expect, actual)
 		})
 	}
+}
+
+func ptr[T any](i T) *T {
+	return &i
 }
 
 func TestMappingSkipField(t *testing.T) {
