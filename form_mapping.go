@@ -6,7 +6,6 @@ package binding
 
 import (
 	"encoding"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -166,10 +165,6 @@ func setValue(val string, value reflect.Value) error {
 		return setFloatField(val, 64, value)
 	case reflect.String:
 		value.SetString(val)
-	case reflect.Struct:
-		return json.Unmarshal(stringToBytes(val), value.Addr().Interface())
-	case reflect.Map:
-		return json.Unmarshal(stringToBytes(val), value.Addr().Interface())
 	default:
 		return errUnknownType
 	}

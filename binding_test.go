@@ -38,20 +38,11 @@ func TestBindingQuery2(t *testing.T) {
 	testQueryBinding(t, "GET", "/?foo=bar&bar=foo", "foo=unused")
 }
 
-func TestBindingQueryFail(t *testing.T) {
-	testQueryBindingFail(t, "POST", "/?map_foo=", "map_foo=unused")
-}
-
-func TestBindingQueryFail2(t *testing.T) {
-	testQueryBindingFail(t, "GET", "/?map_foo=", "map_foo=unused")
-}
-
 func TestBindingQueryBoolFail(t *testing.T) {
 	testQueryBindingBoolFail(t, "GET", "/?bool_foo=fasl", "bool_foo=unused")
 }
 
 func TestUriBinding(t *testing.T) {
-
 	type Tag struct {
 		Name string `uri:"name"`
 	}
@@ -60,13 +51,6 @@ func TestUriBinding(t *testing.T) {
 	m["name"] = []string{"thinkerou"}
 	assert.NilError(t, BindURI(m, &tag))
 	assert.Equal(t, "thinkerou", tag.Name)
-
-	type NotSupportStruct struct {
-		Name map[string]any `uri:"name"`
-	}
-	var not NotSupportStruct
-	assert.ErrorContains(t, BindURI(m, &not), "invalid character")
-	assert.DeepEqual(t, map[string]any(nil), not.Name)
 }
 
 func TestUriInnerBinding(t *testing.T) {
@@ -103,16 +87,6 @@ func testQueryBinding(t *testing.T, method, path, body string) {
 	assert.NilError(t, err)
 	assert.Equal(t, "bar", obj.Foo)
 	assert.Equal(t, "foo", obj.Bar)
-}
-
-func testQueryBindingFail(t *testing.T, method, path, body string) {
-	obj := FooStructForMapType{}
-	req := requestWithBody(method, path, body)
-	if method == "POST" {
-		req.Header.Add("Content-Type", MIMEPOSTForm)
-	}
-	err := BindQuery(req, &obj)
-	assert.Error(t, err, "unexpected end of JSON input")
 }
 
 func testQueryBindingBoolFail(t *testing.T, method, path, body string) {

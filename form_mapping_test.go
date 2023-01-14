@@ -173,28 +173,6 @@ func TestMappingArray(t *testing.T) {
 	assert.ErrorContains(t, err, "is not valid value for [2]int")
 }
 
-func TestMappingStructField(t *testing.T) {
-	var s struct {
-		J struct {
-			I int
-		}
-	}
-
-	err := decode(&s, formSource{"J": {`{"I": 9}`}}, "form")
-	assert.NilError(t, err)
-	assert.Equal(t, 9, s.J.I)
-}
-
-func TestMappingMapField(t *testing.T) {
-	var s struct {
-		M map[string]int
-	}
-
-	err := decode(&s, formSource{"M": {`{"one": 1}`}}, "form")
-	assert.NilError(t, err)
-	assert.DeepEqual(t, map[string]int{"one": 1}, s.M)
-}
-
 func TestMappingIgnoredCircularRef(t *testing.T) {
 	type S struct {
 		S *S `form:"-"`
