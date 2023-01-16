@@ -42,14 +42,21 @@ func decodeStruct(target reflect.Value, source formSource, tag string) error {
 			continue
 		}
 
+		fieldTarget := target.Field(i)
+		if fieldTarget.CanAddr() {
+			if _, ok := fieldTarget.Addr().Interface().(encoding.TextUnmarshaler); ok {
+				return decodeField(sf, fieldTarget, source, tag)
+			}
+		}
+
 		if sf.Type.Kind() == reflect.Struct {
-			if err := decodeStruct(target.Field(i), source, tag); err != nil {
+			if err := decodeStruct(fieldTarget, source, tag); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if err := decodeField(sf, target.Field(i), source, tag); err != nil {
+		if err := decodeField(sf, fieldTarget, source, tag); err != nil {
 			return err
 		}
 	}
@@ -78,6 +85,7 @@ func decodeField(sf reflect.StructField, fieldTarget reflect.Value, source formS
 		}
 	}
 
+	// nolint:exhaustive
 	switch sf.Type.Kind() {
 	case reflect.Pointer:
 		vPtr := fieldTarget
@@ -100,6 +108,7 @@ func setValue(val string, value reflect.Value) error {
 		return nil
 	}
 
+	// nolint:exhaustive
 	switch value.Kind() {
 	case reflect.Int:
 		return setIntField(val, 0, value)
