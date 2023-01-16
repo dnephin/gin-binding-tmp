@@ -29,7 +29,7 @@ type structFull struct {
 	Nationality *string `form:"nationality"`
 }
 
-func BenchmarkMapFormFull(b *testing.B) {
+func BenchmarkDecodeFull(b *testing.B) {
 	var s structFull
 	for i := 0; i < b.N; i++ {
 		err := decode(&s, form, "form")
@@ -52,7 +52,7 @@ type structName struct {
 	Name string `form:"name"`
 }
 
-func BenchmarkMapFormName(b *testing.B) {
+func BenchmarkDecodeName(b *testing.B) {
 	var s structName
 	for i := 0; i < b.N; i++ {
 		err := decode(&s, form, "form")

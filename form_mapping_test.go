@@ -92,7 +92,7 @@ func ptr[T any](i T) *T {
 	return &i
 }
 
-func TestMappingSkipField(t *testing.T) {
+func TestDecodeSkipField(t *testing.T) {
 	var s struct {
 		A int
 	}
@@ -102,7 +102,7 @@ func TestMappingSkipField(t *testing.T) {
 	assert.Equal(t, 0, s.A)
 }
 
-func TestMappingIgnoreField(t *testing.T) {
+func TestDecodeIgnoreField(t *testing.T) {
 	var s struct {
 		A int `form:"A"`
 		B int `form:"-"`
@@ -114,7 +114,7 @@ func TestMappingIgnoreField(t *testing.T) {
 	assert.Equal(t, 0, s.B)
 }
 
-func TestMappingUnexportedField(t *testing.T) {
+func TestDecodeUnexportedField(t *testing.T) {
 	var s struct {
 		A int `form:"a"`
 		b int `form:"b"`
@@ -126,7 +126,7 @@ func TestMappingUnexportedField(t *testing.T) {
 	assert.Equal(t, 0, s.b)
 }
 
-func TestMappingPrivateField(t *testing.T) {
+func TestDecodePrivateField(t *testing.T) {
 	var s struct {
 		f int `form:"field"`
 	}
@@ -135,7 +135,7 @@ func TestMappingPrivateField(t *testing.T) {
 	assert.Equal(t, 0, s.f)
 }
 
-func TestMappingUnknownFieldType(t *testing.T) {
+func TestDecodeUnknownFieldType(t *testing.T) {
 	var s struct {
 		U uintptr `form:"U"`
 	}
@@ -153,7 +153,7 @@ func TestBindURI(t *testing.T) {
 	assert.Equal(t, 6, s.F)
 }
 
-func TestMappingForm(t *testing.T) {
+func TestDecode(t *testing.T) {
 	var s struct {
 		F int `form:"field"`
 	}
@@ -162,7 +162,7 @@ func TestMappingForm(t *testing.T) {
 	assert.Equal(t, 6, s.F)
 }
 
-func TestMappingSlice(t *testing.T) {
+func TestDecodeSlice(t *testing.T) {
 	var s struct {
 		Slice []int `form:"slice"`
 	}
@@ -182,7 +182,7 @@ func TestMappingSlice(t *testing.T) {
 	assert.ErrorContains(t, err, "invalid syntax")
 }
 
-func TestMappingIgnoredCircularRef(t *testing.T) {
+func TestDecodeIgnoredCircularRef(t *testing.T) {
 	type S struct {
 		S *S `form:"-"`
 	}
